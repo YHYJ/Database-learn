@@ -8,15 +8,23 @@ PostgreSQL(PG)及其组件
 
 <!-- vim-markdown-toc GFM -->
 
-* [安装和配置](#安装和配置)
-* [PG的组件](#pg的组件)
+* [PG安装和配置](#pg安装和配置)
+* [PG的插件](#pg的插件)
     * [pgadmin](#pgadmin)
         * [安装](#安装)
     * [pgpool-II](#pgpool-ii)
-        * [安装](#安装-1)
+        * [安装pgpool-II](#安装pgpool-ii)
             * [下载源文件](#下载源文件)
+            * [依赖](#依赖)
+            * [编译安装](#编译安装)
+        * [配置pgpool-II](#配置pgpool-ii)
+            * [添加系统用户](#添加系统用户)
+            * [pcp.conf](#pcpconf)
+            * [pgpool.conf](#pgpoolconf)
+            * [watchdog](#watchdog)
+            * [pgpool-ii.service](#pgpool-iiservice)
     * [pgbouncer](#pgbouncer)
-        * [安装](#安装-2)
+        * [安装](#安装-1)
         * [作用](#作用)
         * [轻量级的体现](#轻量级的体现)
         * [三种连接池模型](#三种连接池模型)
@@ -28,7 +36,55 @@ PostgreSQL(PG)及其组件
 
 ---
 
-该文档只记录在ArchLinux下安装配置PostgreSQL的过程
+**确保：**
+
+- 有系统用户`postgres`和`pgpool`
+
+	```bash
+	# useradd --system --no-create-home pgpool
+	```
+
+	> 如果PG是从源安装的，应该已经自动创建系统用户postgres
+	>
+	> pgpool是编译安装的，需要手动添加系统用户pgpool
+
+- 登录用户已添加到`postgres`和`pgpool`组
+
+	```bash
+	# usermod -aG postgres,pgpool yj
+	```
+
+	> 为了运行命令时不必总是要切换用户，将登录用户添加到组（登录用户以'yj'为例）
+
+- 以下文件夹的属组和权限正确：
+
+	- `/var/run/pgpool` —— 属组：`pgpool`；权限：`775`
+
+		```bash
+		# chown pgpool:pgpool /var/run/pgpool -R
+		# chmod 775 /var/run/pgpool -R
+		```
+
+		> pgpool的pid文件路径，由pgpool.conf中的参数`pid_file_name`定义
+
+	- `/var/run/postgresql`—— 属组：`postgres`；权限：`775`
+
+		```bash
+		# chown postgres:postgres /var/lib/postgres -R
+		# chmod 775 /var/run/pgpool -R
+		```
+
+		> PG的domain socket文件路径
+		>
+		> pgpool的domain socket文件路径，由pgpool.conf中的参数`socket_dir`、`pcp_socket_dir`、`wd_ipc_socket_dir`定义
+
+	- `/var/lib/postgres` —— 属组：`postgres`；权限：`755`
+
+		```bash
+		# chown postgres:postgres /var/run/postgresql -R
+		```
+
+		> PG文件和数据存储路径
 
 ---
 
@@ -56,7 +112,9 @@ Pgpool-II is a middleware that works between PostgreSQL servers and a PostgreSQL
 
 redhat发行版可以直接下载安装包，其他发行版需要编译，不支持Windows
 
-#### 下载源文件
+#### 安装pgpool-II
+
+##### 下载源文件
 
 **不要从[下载页面](https://www.pgpool.net/mediawiki/index.php/Downloads)下载打包后的pgpool，到[这里](https://www.pgpool.net/mediawiki/index.php/Source_code_repository)下载pgpool的源代码**
 
@@ -64,7 +122,7 @@ redhat发行版可以直接下载安装包，其他发行版需要编译，不�
 
 **下载之后解压并cd到得到的文件夹**
 
-#### 依赖
+##### 依赖
 
 - GNUX make 3.80或更高版本
 
@@ -84,7 +142,7 @@ redhat发行版可以直接下载安装包，其他发行版需要编译，不�
 
 pgpool-II源代码和依赖都准备好之后开始编译
 
-#### 编译安装
+##### 编译安装
 
 0. 修改`configure`文件
 
@@ -141,6 +199,114 @@ pgpool-II源代码和依赖都准备好之后开始编译
 	```
 
 	安装完成之后，以默认`--prefix`参数为例，可执行文件在`/usr/local/bin`，配置文件在`/usr/local/etc`
+
+#### 配置pgpool-II
+
+##### 添加系统用户
+
+添加一个系统用户**pgpool**：
+
+```bash
+# useradd --system --no-create-home pgpool
+```
+
+##### pcp.conf
+
+pcp.conf是pgpool的身份认证配置文件，该文件包含用于pgpool Communication Manager的用户ID和密码（区别于PostgreSQL的用户）
+
+**执行pgpool的用户必须有读取pcp.conf的权限**
+
+1. 创建pcp.conf：
+
+	```bash
+	# cp /usr/local/etc/pcp.conf.sample /usr/local/etc/pcp.conf
+	```
+
+2. 内容格式为：
+
+	```yaml
+	username:[md5 encrypted password]
+	```
+
+3. 生成`[md5 encrypted password]`：
+
+	```bash
+	$ pg_md5 your_password
+	```
+
+	> 将'your_password'替换为自定义密码
+
+	如果不想显式输入密码，使用以下命令：
+
+	```bash
+	$ pg_md5 -p
+	```
+
+4. 将用户名及生成的加密后的密码写入pcp.conf，例如：
+
+	```yaml
+	pgpool:ba777e4c2f15c11ea8ac3be7e0440aa0
+	```
+
+##### pgpool.conf
+
+pgpool.con是pgpool-II的主配置文件，根据模式不同，有不同的后缀名，选择一种模式的配置文件用来创建pgpool.conf，这里使用默认的pgpool.conf.sample
+
+**修改pgpool.conf中的参数后，运行`pgpool reload`将新的参数值（除了明确要求必须重启pgpool的参数）加载到进程（包括所有子进程）**
+
+模式说明：
+
+| 配置文件                           | 模式                       |
+| ---------------------------------- | -------------------------- |
+| pgpool.conf.sample-stream          | streaming replication mode |
+| pgpool.conf.sample-replication     | native replication mode    |
+| pgpool.conf.sample-slony（已过时） | master slave               |
+| pgpool.conf.sample-raw             | raw mode                   |
+| pgpool.conf.sample-logical         | logical replication mode   |
+
+1. 创建pgpool.conf
+
+	```bash
+	# cp /usr/local/etc/pgpool.conf.sample /usr/local/etc/pgpool.conf
+	```
+
+2. 编辑pgpool.conf：
+
+	至少需要设置`backend_hostname`和`backend_port`参数才能启动pgpool-II
+
+	> 默认`backend_hostname0`和`backend_post0`应该能够连接到使用默认参数的PG
+
+3. 具体参数配置请看[config setting](https://www.pgpool.net/docs/latest/en/html/config-setting.html)
+
+	需要把其中值为**nobody**的参数都修改为具体的值
+
+##### watchdog
+
+[Tutorial watchdog](https://www.pgpool.net/docs/latest/en/html/tutorial-watchdog.html)
+
+##### pgpool-ii.service
+
+创建pgpool的service文件，以便用systemd管理服务
+
+1. 创建`/etc/systemd/user/pgpool-ii.service`，写入以下内容：
+
+	```toml
+	[Unit]
+	Description=PGPool-II Middleware Between PostgreSQL Servers And PostgreSQL Database Clients
+	After=syslog.target network.target
+	
+	[Service]
+	ExecStart=/usr/local/bin/pgpool -n
+	
+	[Install]
+	WantedBy=multi-user.target
+	```
+
+2. 使用以下命令设置pgpool-ii开机自启并立即启动：
+
+	```bash
+	$ systemctl enable --now pgpool-ii
+	```
 
 ### pgbouncer
 
