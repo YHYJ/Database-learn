@@ -18,11 +18,11 @@ PostgreSQL(PG)及其组件
             * [依赖](#依赖)
             * [编译安装](#编译安装)
         * [配置pgpool-II](#配置pgpool-ii)
-            * [添加系统用户](#添加系统用户)
             * [pcp.conf](#pcpconf)
             * [pgpool.conf](#pgpoolconf)
             * [watchdog](#watchdog)
             * [pgpool-ii.service](#pgpool-iiservice)
+        * [测试pgpool-II](#测试pgpool-ii)
     * [pgbouncer](#pgbouncer)
         * [安装](#安装-1)
         * [作用](#作用)
@@ -44,47 +44,37 @@ PostgreSQL(PG)及其组件
 	# useradd --system --no-create-home pgpool
 	```
 
-	> 如果PG是从源安装的，应该已经自动创建系统用户postgres
-	>
-	> pgpool是编译安装的，需要手动添加系统用户pgpool
+	如果PG是从源安装的，应该已经自动创建系统用户postgres
+	
+	pgpool是编译安装的，需要手动添加系统用户pgpool
 
-- 登录用户已添加到`postgres`和`pgpool`组
+- 有以下文件夹且属性和权限正确：
 
-	```bash
-	# usermod -aG postgres,pgpool yj
+	- `/var/run/pgpool` —— 属组：`root:root`；权限：`755`
+
+		pgpool的pid文件路径，由pgpool.conf中的参数`pid_file_name`定义
+		
+	- `/var/run/postgresql`—— 属组：`postgres:postgres`；权限：`775`
+	
+  ```bash
+	  # chown postgres:postgres /var/run/postgresql
+  # chmod 775 /var/run/postgresql
 	```
 
-	> 为了运行命令时不必总是要切换用户，将登录用户添加到组（登录用户以'yj'为例）
-
-- 以下文件夹的属组和权限正确：
-
-	- `/var/run/pgpool` —— 属组：`pgpool`；权限：`775`
-
-		```bash
-		# chown pgpool:pgpool /var/run/pgpool -R
-		# chmod 775 /var/run/pgpool -R
-		```
-
-		> pgpool的pid文件路径，由pgpool.conf中的参数`pid_file_name`定义
-
-	- `/var/run/postgresql`—— 属组：`postgres`；权限：`775`
-
-		```bash
-		# chown postgres:postgres /var/lib/postgres -R
-		# chmod 775 /var/run/pgpool -R
-		```
-
-		> PG的domain socket文件路径
-		>
-		> pgpool的domain socket文件路径，由pgpool.conf中的参数`socket_dir`、`pcp_socket_dir`、`wd_ipc_socket_dir`定义
-
-	- `/var/lib/postgres` —— 属组：`postgres`；权限：`755`
-
-		```bash
-		# chown postgres:postgres /var/run/postgresql -R
-		```
-
-		> PG文件和数据存储路径
+	  PG的domain socket文件路径
+	
+	  pgpool的domain socket文件路径，由pgpool.conf中的参数`socket_dir`、`pcp_socket_dir`、`wd_ipc_socket_dir`定义
+	
+  > 为了测试时候方便改了属性和权限，不该也可以，只是使用`pg_ctl`操作测试PG的时候需要root权限
+	
+	- `/var/lib/postgres` —— 属组：`postgres:postgres`；权限：`755`
+	
+	```bash
+		# chown postgres:postgres /var/lib/postgres
+	# chmod 775 /var/lib/postgres
+	```
+	
+		PG文件和数据存储路径
 
 ---
 
@@ -202,17 +192,9 @@ pgpool-II源代码和依赖都准备好之后开始编译
 
 #### 配置pgpool-II
 
-##### 添加系统用户
-
-添加一个系统用户**pgpool**：
-
-```bash
-# useradd --system --no-create-home pgpool
-```
-
 ##### pcp.conf
 
-pcp.conf是pgpool的身份认证配置文件，该文件包含用于pgpool Communication Manager的用户ID和密码（区别于PostgreSQL的用户）
+pcp.conf是pgpool的身份认证配置文件（与PG的身份认证无关），该文件包含用于pgpool Communication Manager的用户ID和密码
 
 **执行pgpool的用户必须有读取pcp.conf的权限**
 
@@ -234,7 +216,7 @@ pcp.conf是pgpool的身份认证配置文件，该文件包含用于pgpool Commu
 	$ pg_md5 your_password
 	```
 
-	> 将'your_password'替换为自定义密码
+	> 将'your_password'替换为密码
 
 	如果不想显式输入密码，使用以下命令：
 
@@ -276,9 +258,60 @@ pgpool.con是pgpool-II的主配置文件，根据模式不同，有不同的后�
 
 	> 默认`backend_hostname0`和`backend_post0`应该能够连接到使用默认参数的PG
 
-3. 具体参数配置请看[config setting](https://www.pgpool.net/docs/latest/en/html/config-setting.html)
+3. 具体参数配置请看[config setting](https://www.pgpool.net/docs/latest/en/html/config-setting.html)和[example configs](https://www.pgpool.net/docs/latest/en/html/example-configs.html)
 
-	需要把其中值为**nobody**的参数都修改为具体的值
+  **需要把其中值为**nobody**的参数修改为具体要求的值**
+
+  主要需要修改的配置项有：
+
+  - 连接选项 -- pgpool进程的连接设置
+  	- `listen_addresses`
+
+  		> pgpool主进程的监听地址
+
+  	- `port`
+
+  		> pgpool进程使用的端口
+
+  	- `socket_dir`
+
+  		> pgpool进程的domain socket文件的存储路径，**设置成和PG的domain socket文件同一路径，否则PG的命令无法连接pgpool的端口**
+
+  - 连接选项 -- pcp(pgpool Communication Manager)进程的连接设置
+
+  	- `pcp_listen_addresses`
+
+  		> pcp进程的监听地址
+
+  	- `pcp_port`
+
+  		> pcp进程使用的端口
+
+  	- `pcp_socket_dir`
+
+  		> pcp进程的domain socket文件的存储路径，**设置成和PG的domain socket文件同一路径**
+
+  - 后端连接设置
+
+  	- `backend_hostname`
+
+  		> PG使用的监听地址
+
+  	- `backend_port`
+
+  		> PG使用的端口
+
+  	- `backend_data_directory`
+
+  		> PG的数据库集群路径
+
+  	以上三个参数都可以在后面增加数字来表示后端连接编号，形如`backend_hostname0`、`backend_hostname1`，仅使用一个PG数据库则后缀0，增加一个PG后缀数字+1
+
+  - 连接池设置
+
+  	- `connection_cache`
+
+  		> 设置是否激活连接池，连接池里并没有template0、template1、postgres和regression这四个数据库的连接缓存
 
 ##### watchdog
 
@@ -305,8 +338,64 @@ pgpool.con是pgpool-II的主配置文件，根据模式不同，有不同的后�
 2. 使用以下命令设置pgpool-ii开机自启并立即启动：
 
 	```bash
-	$ systemctl enable --now pgpool-ii
+	$ systemctl enable --user --now pgpool-ii
 	```
+
+    > 因为文件权限修改过，这里使用user权限管理即可，也可以测试一下使用root权限管理，应该可以
+
+#### 测试pgpool-II
+
+[pgpool-II各命令简介](https://www.pgpool.net/docs/latest/en/html/reference.html)
+
+> 注意事项：
+>
+> - pgpool-II的所有命令，有参数能够指定`hostname`的都写上这个参数，否则使用的是Unix Socket通讯，而尽管在pgpool.conf里配置了domain socket文件地址，命令还是使用的默认路径查找domain socket文件，所以要指定hostname使用TCP/IP Socket
+
+1. 环境准备
+
+	使用本机（和pgpool-II在同一个机器上）开启两个PG服务用于测试
+
+	- 创建数据集文件夹
+
+		```bash
+		$ mkdir data_5433 data_5434
+		```
+
+	- 初始化数据集
+
+		```bash
+		$ initdb --locale=en_US.UTF-8 --encoding=UTF8 --pgdata=./data_5433 --username=postgres
+		$ initdb --locale=en_US.UTF-8 --encoding=UTF8 --pgdata=./data_5434 --username=postgres
+		```
+
+	- 启动测试PG
+
+		```bash
+		$ pg_ctl --wait --pgdata=./data_5433 start
+		$ pg_ctl --wait --pgdata=./data_5434 start
+		```
+
+2. 启动pgpool-II
+
+	- 编辑配置文件
+
+		确保pgpool.conf中*# - Backend Connection Settings -*部分的参数配置正确
+
+	- 启动pgpool-II服务
+
+		```bash
+		# systemctl start pgpool-ii.service
+		```
+
+	- 查看pgpool-II状态
+
+		```bash
+		$ psql --host=127.0.0.1 --port=9999 --username=postgres -c "show pool_nodes"
+		```
+
+		> 示例配置了两个PG，查询结果应该有两行，确保都是**status**列都是**up**
+
+		
 
 ### pgbouncer
 
