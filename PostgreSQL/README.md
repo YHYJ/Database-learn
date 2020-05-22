@@ -9,7 +9,7 @@ PostgreSQL(PG)及其组件
 <!-- vim-markdown-toc GFM -->
 
 * [PostgreSQL的安装和配置](#postgresql的安装和配置)
-* [PostgreSQL的插件](#postgresql的插件)
+* [PostgreSQL的组件](#postgresql的组件)
     * [PgAdmin](#pgadmin)
         * [安装](#安装)
     * [Pgpool-II](#pgpool-ii)
@@ -54,7 +54,7 @@ PostgreSQL(PG)及其组件
 
 参考[Install & Deploy](./file/install-and-deploy.md)
 
-## PostgreSQL的插件
+## PostgreSQL的组件
 
 ### PgAdmin
 
