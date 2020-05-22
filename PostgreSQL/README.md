@@ -8,96 +8,57 @@ PostgreSQL(PG)及其组件
 
 <!-- vim-markdown-toc GFM -->
 
-* [PG安装和配置](#pg安装和配置)
-* [PG的插件](#pg的插件)
-    * [pgadmin](#pgadmin)
+* [PostgreSQL的安装和配置](#postgresql的安装和配置)
+* [PostgreSQL的插件](#postgresql的插件)
+    * [PgAdmin](#pgadmin)
         * [安装](#安装)
-    * [pgpool-II](#pgpool-ii)
-        * [安装pgpool-II](#安装pgpool-ii)
-            * [下载源文件](#下载源文件)
-            * [依赖](#依赖)
-            * [编译安装](#编译安装)
-        * [安装pgpool-II相关函数](#安装pgpool-ii相关函数)
-        * [使用pgpool-II函数](#使用pgpool-ii函数)
-        * [pgpool-II的配置文件](#pgpool-ii的配置文件)
-            * [pool_passwd](#pool_passwd)
-            * [pcp.conf](#pcpconf)
-            * [pool_hba.conf](#pool_hbaconf)
+    * [Pgpool-II](#pgpool-ii)
+        * [注意事项](#注意事项)
+        * [下载源代码](#下载源代码)
+        * [Pgpool-II的编译依赖](#pgpool-ii的编译依赖)
+        * [编译安装Pgpool-II](#编译安装pgpool-ii)
+        * [编译安装Pgpool-II函数](#编译安装pgpool-ii函数)
+        * [使用Pgpool-II函数](#使用pgpool-ii函数)
+        * [配置Pgpool-II](#配置pgpool-ii)
             * [pgpool.conf](#pgpoolconf)
-            * [watchdog](#watchdog)
+            * [pcp.conf](#pcpconf)
+            * [pool_passwd](#pool_passwd)
+            * [pool_hba.conf](#pool_hbaconf)
             * [pgpool-ii.service](#pgpool-iiservice)
-        * [测试pgpool-II](#测试pgpool-ii)
-            * [配置PG启用Streaming Replication(SR)](#配置pg启用streaming-replicationsr)
-                * [配置主节点(Master)](#配置主节点master)
-                * [配置从节点(Slave)](#配置从节点slave)
-            * [配置pgpool-II](#配置pgpool-ii)
-            * [负载均衡测试](#负载均衡测试)
-    * [pgbouncer](#pgbouncer)
+        * [测试Pgpool-II](#测试pgpool-ii)
+            * [测试环境参数](#测试环境参数)
+            * [配置PostgreSQL测试环境](#配置postgresql测试环境)
+                * [配置主要节点(Primary)](#配置主要节点primary)
+                * [配置备用节点(Standby)](#配置备用节点standby)
+                * [测试PostgreSQL的SR](#测试postgresql的sr)
+            * [配置Pgpool-II测试环境](#配置pgpool-ii测试环境)
+            * [Pgpool-II负载均衡测试](#pgpool-ii负载均衡测试)
+    * [PgBouncer](#pgbouncer)
         * [安装](#安装-1)
         * [作用](#作用)
         * [轻量级的体现](#轻量级的体现)
         * [三种连接池模型](#三种连接池模型)
         * [配置](#配置)
-            * [成功运行pgbouncer服务需要的配置](#成功运行pgbouncer服务需要的配置)
+            * [配置PgBouncer服务](#配置pgbouncer服务)
             * [配置userlist.txt](#配置userlisttxt)
 
 <!-- vim-markdown-toc -->
 
 ---
 
-对于文档中命令参数不理解的，请自行查看对应命令的`--help`输出
-
-**确保：**
-
-- 有系统用户`postgres`和`pgpool`
-
-	```bash
-	# useradd --system --no-create-home pgpool
-	```
-
-	如果PG是从源安装的，应该已经自动创建系统用户postgres
-	
-	pgpool是编译安装的，需要手动添加系统用户pgpool
-
-- 有以下文件夹且属性和权限正确：
-
-	- `/var/run/pgpool` —— 属组：`root:root`；权限：`755`
-
-		pgpool的pid文件路径，由pgpool.conf中的参数`pid_file_name`定义
-		
-	- `/var/run/postgresql`—— 属组：`postgres:postgres`；权限：`775`
-	
-  ```bash
-	  # chown postgres:postgres /var/run/postgresql
-  # chmod 775 /var/run/postgresql
-	```
-
-	  PG的domain socket文件路径
-	
-	  pgpool的domain socket文件路径，由pgpool.conf中的参数`socket_dir`、`pcp_socket_dir`、`wd_ipc_socket_dir`定义
-	
-  > 为了测试时候方便改了属性和权限，不该也可以，只是使用`pg_ctl`操作测试PG的时候需要root权限
-	
-	- `/var/lib/postgres` —— 属组：`postgres:postgres`；权限：`755`
-	
-	```bash
-		# chown postgres:postgres /var/lib/postgres
-	# chmod 775 /var/lib/postgres
-	```
-	
-		PG文件和数据存储路径
+文档中使用的命令参数的作用请自行查看对应命令的`--help`输出
 
 ---
 
-## PG安装和配置
+## PostgreSQL的安装和配置
 
 参考[Install & Deploy](./file/install-and-deploy.md)
 
-## PG的插件
+## PostgreSQL的插件
 
-### pgadmin
+### PgAdmin
 
-PG管理工具
+ Comprehensive design and management interface for PostgreSQL
 
 #### 安装
 
@@ -105,582 +66,766 @@ PG管理工具
 # pacman -S pgadmin4
 ```
 
----
-
-### pgpool-II
+### Pgpool-II
 
 Pgpool-II is a middleware that works between PostgreSQL servers and a PostgreSQL database client
 
-[pgpool Wiki](https://www.pgpool.net/mediawiki/index.php/Main_Page)
+> [Pgpool Wiki](https://www.pgpool.net/mediawiki/index.php/Main_Page)
+>
+> [Pgpool-II各命令简介](https://www.pgpool.net/docs/latest/en/html/reference.html)
+>
+> 提供Redhat系列发行版的安装包(rpm)，其他发行版需要编译，不支持Windows
 
-redhat发行版可以直接下载安装包，其他发行版需要编译，不支持Windows
+#### 注意事项
 
-#### 安装pgpool-II
+编译Pgpool-II按照文档来就可以，但是使用Pgpool-II之前需要确保一下无误：
 
-##### 下载源文件
+- 存在系统用户'postgres'和'pgpool'及对应的组
 
-**不要从[下载页面](https://www.pgpool.net/mediawiki/index.php/Downloads)下载打包后的pgpool，到[这里](https://www.pgpool.net/mediawiki/index.php/Source_code_repository)下载pgpool的源代码**
+  如果PostgreSQL是从源安装的应该已经自动创建了名为'postgres'的系统用户和组
 
-*因为第一个连接下载下来的代码编译过程中一直报错`collect2: error: ld returned 1 exit status`并且怎么修改都没用，第二个虽然也会报错，但修改后能够编译通过*
+  如果PostgreSQL和Pgpool-II都是自行编译安装的，需要手动创建对应的用户和组
 
-**下载之后解压并cd到得到的文件夹**
+  使用以下命令查看：
 
-##### 依赖
+  ```bash
+  $ id username
+  ```
 
-- GNUX make 3.80或更高版本
+  ![User & Group](https://gitee.com/YJ1516/MyPic/raw/master/picgo/user_and_group.png)
 
-	> 测试make版本：
-	>
-	> ```bash
-	> make --version
-	> ```
+  上图可以看到用户'postgres'和'pgpool'及其同名组都是系统用户/组（<1000即为i系统用户/组）
 
-- ISO/ANSI C编译器，建议使用最新版本的`gcc`
+  如果系统中没有某个系统用户及其同名组，使用以下命令添加：
+
+  ```bash
+  # useradd --system --no-create-home username
+  ```
+
+  > 将username替换为实际用户名
+
+- 存在以下文件夹且权限归属正确：
+
+  - `/var/run/postgresql` —— 归属：`postgres:postgres`；权限：775
+
+    PostgreSQL的Unix doamin socket文件路径
+
+    Pgpool-II的Unix domain socket文件路径，由配置文件pgpool.conf中的配置项`socket_dir`、`pcp_socket_dir`和`wd_ipc_socket_dir`定义
+
+    > **注意：**该文件夹会在postgresql.service服务stop的时候被其删去，因为测试的时候需要这个文件夹并且测试用到的命令`pg_ctl`等使用的是普通用户的权限，所以需要手动创建该文件并修改权限和归属，命令如下：
+    >
+    > ```bash
+    > # mkdir /var/run/postgresql
+    > # chown postgres:postgres /var/run/postgresql
+    > # chmod 775 /var/run/postgresql
+    > ```
+
+  - `/var/run/pgpool` —— 归属：`root:root`；权限：755
+
+    Pgpool-II的pid文件路径，由配置文件pgpool.conf中的配置项`pid_file_name`定义
+
+    > 该文件夹需要手动创建，命令如下：
+    >
+    > ```bash
+    > # mkdir /var/run/pgpool
+    > ```
+
+#### 下载源代码
+
+Redhat系列发行版可以使用`yum`命令参照Pgpool的[Yum Repository](https://www.pgpool.net/mediawiki/index.php/Downloads#pgpool-II_Yum_repository)进行安装
+
+编译Pgpool-II的话不要从[Source](https://www.pgpool.net/mediawiki/index.php/Downloads#Source)下载打包好的源码，从[PostgreSQL's git repository](https://git.postgresql.org/gitweb)下载未经打包的
+
+> *打包好的源码编译过程中一直报错`collect2: error: ld returned 1 exit status`并且怎么修改都没用，未经打包的源码编译时虽然也会报错，但修改后能够编译通过*
+
+#### Pgpool-II的编译依赖
+
+- GNU `make` 3.80或更高版本
+
+  获取make版本：
+
+  ```bash
+  $ make --version
+  ```
+
+- ISO/ANSI C编译器，建议使用最新版本的GNU Compiler Collection，即`gcc`
 
 - `gzip`和`tar`
 
-- `postgresql-libs`和`postgresql-devel`
+- postgresql-libs和postgresql-devel
 
-- 因为需要clone源代码，也需要`git`
+- `git`
 
-pgpool-II源代码和依赖都准备好之后开始编译
+- libmemcached
 
-##### 编译安装
+  可选依赖，取决于是否要开启Pgpool-II的内存缓存查询功能
 
-0. 修改`configure`文件
+#### 编译安装Pgpool-II
 
-	因为configure文件里写死了automake的版本号，可能会与进行编译的机器上安装的automake版本不符，会导致之后编译失败，所以需要修改configure文件重新指定automake版本：
+Pgpool-II源代码（clone得到pgpool2文件夹）和依赖都准备好之后开始编译安装
 
-	- 确定编译机automake版本：
+1. 进到pgpool2文件夹
 
-		```bash
-		$ automake --version
-		```
+   ```bash
+   $ cd /path/to/pgpool2
+   ```
 
-		> 例如我的automake的版本是*1.16.2*，使用1.16或者1.16.2都可以
+2. 修改configure脚本
 
-	- 编辑`configure`文件
+   因为Pgpool-II的configure里写死了`automake`的版本号，可能与进行编译的机器上安装的`automake`版本不符，会导致之后的编译失败，所以需要将`automake`版本重新指定为当前进行编译的机器的`automake`版本
 
-		打开configure文件，定位到变量**`am__api_version=`**行，将其值修改为1.16（或1.16.2）之后保存退出
+   - 获取编译机的`automake`版本
 
-1. 配置编译参数
+     ```bash
+     $ automake --version
+     ```
 
-	```bash
-	$ ./configure --with-memcached=/usr/include
-	```
+     ![automake version](https://gitee.com/YJ1516/MyPic/raw/master/picgo/automake_version.png)
 
-	`configure`脚本有以下主要参数可以自定义：
+   - 编辑configure脚本
 
-	- `--prefix=path`
+     使用编辑器打开configure文件，定位到变量**am__api_version的**定义位置之后，将其值修改为编译机的`automake`版本号之后保存修改并退出
 
-		指定pgpool-II的安装路径，默认是`/usr/local`
+     ![am__api_version](https://gitee.com/YJ1516/MyPic/raw/master/picgo/am__api_version.png)
 
-	- `--with-pgsql=path`
+     > **注意：**
+     >
+     > 1. **am__api_version**是两个下划线+一个下划线的格式
+     > 2. 编译机的`automake`版本是*1.16.2*，将**am__api_version**的值修改为*1.16*或*1.16.2*都可以
+     > 3. 如果**am__api_version**原值和编译机的`automake`版本一样当然不用修改
 
-		指定PG的安装路径，默认由`pg_config`提供
+3. 配置编译参数
 
-	- `--with-openssl`
+   执行以下命令配置编译参数：
 
-		开启openssl支持，默认关闭
+   ```bash
+   $ ./configure --with-memcached=/usr/include
+   ```
 
-	- `--with-memcached=path`
+   configure脚本有以下主要参数（其他参数请查看`./configure --help`）：
 
-		如果开启内存缓存查询功能，需要**安装`libmemcached`**并指定其头文件安装路径
+   - `--prefix=path`
 
-	> 其他参数请见`./configure --help`
+     指定Pgpool-II的安装路径，默认值是`/usr/local`，建议使用默认值
+
+   - `--with-pgsql=path`
+
+     指定PostgreSQL的安装路径，默认由`pg_config`命令提供
+
+   - `--with-openssl`
+
+     开启OpenSSL支持，默认关闭
+
+   - `--with-memcached=path`
+
+     内存缓存查询功能，如果开启需要安装`libmemcached`并指定其头文件(.h)的路径，示例中配置开启
+
+     > 不同系统的`libmemcached`安装位置可能不一样
+
+4. 编译
+
+   编译参数配置完成之后，执行以下命令进行编译：
+
+   ```bash
+   $ make
+   ```
+
+5. 安装
+
+   编译完成之后，执行以下命令进行安装：
+
+   ```bash
+   # make install
+   ```
+
+   可执行文件安装在`/usr/local/bin`，配置文件在`/usr/local/etc`，动态链接库文件在`/usr/local/lib`
+
+6. 加载动态链接库
+
+   因为Pgpool-II的动态链接库安装在`/usr/local/lib`，系统不能自动加载该路径下的文件，需要手动配置
+
+   > 不加载该动态链接库的话之后使用Pgpool-II函数会报错：
+   >
+   > ```bash
+   > 错误:  无法加载库 "/usr/lib/postgresql/pgpool_adm.so": libpcp.so.1: 无法打开共享对象文件: 没有那个文件或目录
+   > ```
+
+   - 新建`/etc/ld.so.conf.d/pcp.conf`文件并编辑，写入以下内容：
+
+     ```bash
+     /usr/local/lib
+     ```
+
+     > 即`libpcp.so.1`的文件路径
+
+   - 加载动态链接库
+
+     ```bash
+     # ldconfig
+     ```
+
+     运行该命令手动加载新的动态链接库，正确配置`/etc/ld.so.conf.d/pcp.conf`文件之后每次重启系统都会自动加载
+
+#### 编译安装Pgpool-II函数
+
+Pgpool-II函数不是必须安装的，但是官方强烈建议安装
+
+pgpool2文件夹里自带了Pgpool-II函数的源码
+
+1. 进到Pgpool-II函数的源码文件夹
+
+   ```bash
+   $ cd /path/to/pgpool2/src/sql
+   ```
 
 2. 编译
 
-	```bash
-	$ make
-	```
+   ```bash
+   $ make
+   ```
 
 3. 安装
 
-	```bash
-	# make install
-	```
+   ```bash
+   # make install
+   ```
 
-	安装完成之后，以默认`--prefix`参数为例，可执行文件在`/usr/local/bin`，配置文件在`/usr/local/etc`
+   安装路径是`/usr/lib/postgresql`：
 
-#### 安装pgpool-II相关函数
+   > 即PostreSQL的动态链接库路径，不同系统可能不一样
 
-pgpool函数不是必须安装的，但是强烈建议安装**pgpool_adm**, **pgpool-regclass**, **pgpool-recovery**
+   - pgpool_adm.so
+   - pgpool-recovery.so
+   - pgpool-regclass.so
 
-下载的pgpool-II源代码里有安装文件，路径是`/path/to/pgpool2/src/sql`，进入该路径之后，执行编译安装
+#### 使用Pgpool-II函数
 
-1. 编译
+1. 创建extension
 
-	```bash
-	$ make
-	```
+   连接到PostgreSQL服务之后，执行以下指令创建extension：
 
-2. 安装
+   ```sql
+   create extension pgpool_adm ;
+   create extension pgpool_recovery ;
+   create extension pgpool_regclass ;
+   ```
 
-	```bash
-	# make install
-	```
+2. 查看执行结果
 
-安装路径是`/usr/lib/postgresql`：
+   ```sql
+   \x
+   \df
+   ```
 
-- pgpool_adm.so
-- pgpool-recovery.so
-- pgpool-regclass.so
+   `\x`指令打开扩展显示以方便阅读；`\df`指令查看函数列表，有19行记录：
 
-**注意：加载插件需要libpcp.so.1，该文件的安装路径是`/usr/local/lib/libpcp.so.1`**
+   ![函数列表](https://gitee.com/YJ1516/MyPic/raw/master/picgo/extension.png)
 
-如果插件无法加载且报错如下：
+#### 配置Pgpool-II
 
-```bash
-错误:  无法加载库 "/usr/lib/postgresql/pgpool_adm.so": libpcp.so.1: 无法打开共享对象文件: 没有那个文件或目录
-```
+Pgpool-II配置文件修改完成保存之后可以运行`pgpool reload`将改动的配置项热更新到pgpool进程
 
-需要手动加载一下libpcp.so.1，步骤如下：
+重要配置文件：
 
-1. 编辑`/etc/ld.so.conf.d/pcp.conf`文件，写入以下内容：
+- pgpool.conf：用于设置Pgpool-II的模式、数据库的相关信息等
+- pcp.conf：存储Pgpool-II的用户ID及其md5加密的密码，`pcp_*`命令用于管理查看节点信息
+- pool_passwd：保存PostgreSQL的用户ID及其md5加密的密码
+- pool_hba.conf：用于认证Pgpool-II的用户登录方式，如客户端IP限制等，类似于PostgreSQL的pg_hba.con文件
 
-	文件名不用非得是pcp.conf，可以自定义（只要后缀名是`.conf`即可），因为是libpcp.so文件的路径配置文件所以叫pcp.conf
+##### pgpool.conf
 
-	```bash
-	/usr/local/lib
-	```
+pgpool.conf是Pgpool-II的主配置文件，Pgpool-II安装的时候自带了多个不同后缀的示例文件，不同后缀代表不同的模式
 
-	> 即libpcp.so.1的文件路径
+> | 配置文件名                     | Pgpool-II模式              | 备注                            |
+> | ------------------------------ | -------------------------- | ------------------------------- |
+> | pgpool.conf.sample-stream      | Streaming replication mode |                                 |
+> | pgpool.conf.sample-replication | Replication mode           |                                 |
+> | pgpool.conf.sample-slony       | Slony mode                 |                                 |
+> | pgpool.conf.sample-raw         | Raw mode                   |                                 |
+> | pgpool.conf.sample-logical     | Logical replication mode   |                                 |
+> | pgpool.conf.sample             | Streaming replication mode | 和pgpool.conf.sample-stream一样 |
 
-2. 加载动态链接库
+1. 创建pgpool.conf
 
-	```bash
-	# ldconfig
-	```
+   ```bash
+   # cp /usr/local/etc/pgpool.conf.sample-stream /usr/local/etc/pgpool.conf
+   ```
 
-	之后每次重启，系统都会自动加载该文件
+   使用Streaming replication模式，这是最推荐且使用最广泛的模式
 
-#### 使用pgpool-II函数
+2. 编辑pgpool.conf
 
-执行以下指令创建extension：
+   以下所列是pgpool.conf中最基本的配置项，pgpool.conf的详细配置请看[config setting](https://www.pgpool.net/docs/latest/en/html/config-setting.html)和[example configs](https://www.pgpool.net/docs/latest/en/html/example-configs.html)
 
-```sql
-create extension pgpool_adm ;
-create extension pgpool_recovery ;
-create extension pgpool_regclass ;
-```
+   - `listen_addresses`
 
-extension创建完成之后使用`\df`指令查看函数列表，有19行记录（**因为输出结果太宽就不贴图了，请自行查看，作为对比，此时slave节点函数列表有0行记录**）
+     Pgpool-II主进程的监听地址，默认值'localhost'
 
-#### pgpool-II的配置文件
+   - `port`
 
-关键配置文件：
+     Pgpool-II主进程使用的端口，默认值9999
 
-- pool_passwd：用于保存PG相应的用户ID及md5密码
-- pcp.conf：用于管理查、看节点信息，如加入新节点。该文件主要存储pgpool的用户ID及md5形式的密码
-- pool_hba.conf：用于认证pgpool的用户登录方式，如客户端IP限制等，类似于postgresql的pg_hba.conf文件
-- pgpool.conf：用于设置pgpool的模式，主从数据库的相关信息等
+   - `socket_dir`
+
+     Pgpool-II主进程的Unix domain socket文件的存储路径，默认值'/tmp'
+
+     需要设置成和PostgreSQL的Unix domain socket文件同一路径，否则`pgpool`命令会报错
+
+   - `pcp_listen_addresses`
+
+     pcp进程的监听地址，默认值'*'
+
+   - `pcp_port`
+
+     pcp进程使用的端口，默认值9898
+
+   - `pcp_socket_dir`
+
+     pcp进程的Unix domain socket文件的存储路径，默认值'/tmp'
+
+     需要设置成和PostgreSQL的Unix domain socket文件同一路径，否则`pcp_*`命令会报错
+
+   - `backend_hostname*`
+
+     PostgreSQL的监听地址。最后的'*'表示该参数可以有多个，取值从0开始递增
+
+   - `backend_port*`
+
+     PostgreSQL使用的端口。最后的'*'表示该参数可以有多个，取值从0开始递增
+
+   - `backend_weight*`
+
+     负载均衡模式下后端的权重。最后的'*'表示该参数可以有多个，取值从0开始递增
+
+   - `backend_data_directory*`
+
+     PostgreSQL的数据目录。最后的'*'表示该参数可以有多个，取值从0开始递增
+
+   - `connection_cache`
+
+     设置是否激活连接池。连接池里并没有template0、template1、postgres和regression这四个数据库的连接缓存
+
+##### pcp.conf
+
+pcp.conf是Pgpool-II的身份认证配置文件（与PostgreSQL的身份认证无关）
+
+1. 创建pcp.conf
+
+   ```bash
+   # cp /usr/local/etc/pcp.conf.sample /usr/local/etc/pcp.conf
+   ```
+
+   
+
+2. 生成内容
+
+   pcp.conf配置项的格式为：
+
+   ```bash
+   username:[md5 encrypted password]
+   ```
+
+   使用以下命令自动生成md5加密后的密码：
+
+   ```bash
+   $ pg_md5 your_password
+   ```
+
+   > 不要加`--username`参数，否则是为pool_passwd生成配置内容并且会自动写入
+   >
+   > 将'your_password'替换为实际密码
+
+   如果不想显式输入密码，使用以下命令：
+
+   ```bash
+   $ pg_md5 -p
+   ```
+
+   ![pg_md5](https://gitee.com/YJ1516/MyPic/raw/master/picgo/pg_md5.png)
+
+3. 写入pcp.conf
+
+   将用户ID及生成的md5密码组合成正确的格式后写入pcp.conf，例如假设用户ID为'test'，那么要写入的内容为：
+
+   ```bash
+   test:1060b7b46a3bd36b3a0d66e0127d0517
+   ```
 
 ##### pool_passwd
 
-保存PostgreSQL（不是pgpool的）的用户ID及md5格式的密码
+存储PostgreSQL的用户ID及md5加密后的密码
+
+使用以下命令自动生成ID密码对并写入pool_passwd：
 
 ```bash
 # pg_md5 --md5auth --prompt --username=postgres
 ```
 
-该命令会自动生成md5暗文密码和用户ID组合成*username:md5_password*的格式并写入pool_passwd文件
+示例假设用户ID是'postgres'，密码是隐式输入的
 
-##### pcp.conf
+命令执行完之后查看pool_passwd文件，生成的ID密码对已经写入进去了
 
-pcp.conf是pgpool的身份认证配置文件（与PG的身份认证无关），该文件包含用于pgpool Communication Manager（pcp_*命令）的用户ID和密码
-
-**执行pgpool的用户必须有读取pcp.conf的权限**
-
-1. 创建pcp.conf：
-
-	```bash
-	# cp /usr/local/etc/pcp.conf.sample /usr/local/etc/pcp.conf
-	```
-
-2. 内容格式为：
-
-	```yaml
-	username:[md5 encrypted password]
-	```
-
-3. 生成`[md5 encrypted password]`：
-
-  ```bash
-  $ pg_md5 your_password
-  ```
-
-  > 因为加参数的话生成的是pool_passwd的内容，所以不能加参数
-  >
-  > 将'your_password'替换为密码
-
-  如果不想显式输入密码，使用以下命令：
-
-  ```bash
-  $ pg_md5 -p
-  ```
-
-4. 将用户ID（这里是pgpool）及生成的加密后的密码写入pcp.conf，例如：
-
-	```yaml
-	pgpool:ba777e4c2f15c11ea8ac3be7e0440aa0
-	```
+如果还要增加其他用户ID,再次执行该命令并将`--username`设为对应ID，生成的ID密码对会自动追加到pool_passwd
 
 ##### pool_hba.conf
 
-pool_hba.conf用于设定允许连接pgpool的IP/hostname、客户端的验证方式、允许的用户名和允许访问的数据库
+pool_hba.conf用于设定允许连接Pgpool-II的IP/Host、客户端的验证方式、允许连接的用户ID及允许其访问的数据库
 
-> 因为测试是在一台机器上进行的，所以使用文件中自带的配置信息就行
+pool_hba.conf原有内容如下：
 
-##### pgpool.conf
+```yaml
+# TYPE  DATABASE    USER        CIDR-ADDRESS          METHOD
 
-pgpool.con是pgpool-II的主配置文件，根据模式不同，有不同的后缀名，选择一种模式的配置文件用来创建pgpool.conf
+# "local" is for Unix domain socket connections only
+local   all         all                               trust
+# IPv4 local connections:
+host    all         all         127.0.0.1/32          trust
+host    all         all         ::1/128               trust
+```
 
-模式说明：
-
-| 配置文件                       | 模式                       |
-| ------------------------------ | -------------------------- |
-| pgpool.conf.sample-stream      | Streaming replication mode |
-| pgpool.conf.sample-replication | Replication mode           |
-| pgpool.conf.sample-slony       | Slony                      |
-| pgpool.conf.sample-raw         | Raw mode                   |
-| pgpool.conf.sample-logical     | Logical replication mode   |
-
-**修改pgpool.conf中的参数后，运行`pgpool reload`将新的参数值（除了明确要求必须重启pgpool的参数）加载到进程（包括所有子进程）**
-
-1. 创建pgpool.conf
-
-  ```bash
-  # cp /usr/local/etc/pgpool.conf.sample-replication /usr/local/etc/pgpool.conf
-  ```
-
-2. 编辑pgpool.conf：
-
-  至少需要设置`backend_hostname`和`backend_port`参数才能启动pgpool-II
-
-  > 默认`backend_hostname0`和`backend_post0`应该能够连接到使用默认参数的PG
-
-3. 具体参数配置请看[config setting](https://www.pgpool.net/docs/latest/en/html/config-setting.html)和[example configs](https://www.pgpool.net/docs/latest/en/html/example-configs.html)
-
-  **需要把其中值为**nobody**的参数修改为具体要求的值**
-
-  主要需要修改的配置项有：
-
-  - 连接选项 -- pgpool进程的连接设置
-  	- `listen_addresses`
-
-  		> pgpool主进程的监听地址
-
-  	- `port`
-
-  		> pgpool进程使用的端口
-
-  	- `socket_dir`
-
-  		> pgpool进程的domain socket文件的存储路径，**设置成和PG的domain socket文件同一路径，否则PG的命令无法连接pgpool的端口**
-
-  - 连接选项 -- pcp(pgpool Communication Manager)进程的连接设置
-
-  	- `pcp_listen_addresses`
-
-  		> pcp进程的监听地址
-
-  	- `pcp_port`
-
-  		> pcp进程使用的端口
-
-  	- `pcp_socket_dir`
-
-  		> pcp进程的domain socket文件的存储路径，**设置成和PG的domain socket文件同一路径**
-
-  - 后端连接设置
-
-  	- `backend_hostname`
-
-  		> PG使用的监听地址
-
-  	- `backend_port`
-
-  		> PG使用的端口
-
-  	- `backend_data_directory`
-
-  		> PG的数据库集群路径
-
-  	以上三个参数都可以在后面增加数字来表示后端连接编号，形如`backend_hostname0`、`backend_hostname1`，仅使用一个PG数据库则后缀0，增加一个PG后缀数字+1
-
-  - 连接池设置
-
-  	- `connection_cache`
-
-  		> 设置是否激活连接池，连接池里并没有template0、template1、postgres和regression这四个数据库的连接缓存
-
-##### watchdog
-
-[Tutorial watchdog](https://www.pgpool.net/docs/latest/en/html/tutorial-watchdog.html)
+> 因为这仅是测试，所以使用pool_hba.conf原有的内容即可，正式使用需要修改
 
 ##### pgpool-ii.service
 
-创建pgpool的service文件，以便用systemd管理服务
+创建Pgpool-II的服务文件，以便使用systemd进行管理
 
-1. 创建`/etc/systemd/user/pgpool-ii.service`，写入以下内容：
+1. 创建`/etc/systemd/system/pgpool-ii.service`文件
 
-	```toml
-	[Unit]
-	Description=PGPool-II Middleware Between PostgreSQL Servers And PostgreSQL Database Clients
-	After=syslog.target network.target
-	
-	[Service]
-	ExecStart=/usr/local/bin/pgpool -n
-	
-	[Install]
-	WantedBy=multi-user.target
-	```
+   写入以下内容：
 
-2. 使用以下命令设置pgpool-ii开机自启并立即启动：
+   ```toml
+   [Unit]
+   Description=PGPool-II Middleware Between PostgreSQL Servers And PostgreSQL Database Clients
+   After=syslog.target network.target
+   
+   [Service]
+   ExecStart=/usr/local/bin/pgpool -n
+   
+   [Install]
+   WantedBy=multi-user.target
+   ```
 
-	```bash
-	$ systemctl enable --user --now pgpool-ii
-	```
+2. 管理pgpool-ii服务
 
-    > 因为文件权限修改过，这里使用user权限管理即可，也可以测试一下使用root权限管理，应该可以
+   设置pgpool-ii服务开机自启：
 
-#### 测试pgpool-II
+   ```bash
+   # systemctl enable pgpool-ii
+   ```
 
-> 开启PG的Streaming Replication，配置pgpool连接PG并开启负载均衡
+   开启pgpool-ii服务：
 
-[pgpool-II各命令简介](https://www.pgpool.net/docs/latest/en/html/reference.html)
+   ```bash
+   # systemctl start pgpool-ii
+   ```
 
-注意事项：
+   停止pgpool-ii服务：
 
-pgpool-II的所有命令，有参数能够指定`hostname`的都写上这个参数，否则使用的是Unix Socket通讯，而尽管在pgpool.conf里配置了domain socket文件地址，命令还是使用的默认路径查找domain socket文件，所以要指定hostname使用TCP/IP Socket
+   ```bash
+   # systemctl stop pgpool-ii
+   ```
 
-> 127.0.0.1:9999：pgpool主进程
->
-> 127.0.0.1:5433：Master节点，数据目录`data_5433`
->
-> 127.0.0.1:5434：Slave节点，数据目录`data_5434`
+   重启pgpool-ii服务：
 
-##### 配置PG启用Streaming Replication(SR)
+   ```bash
+   # systemctl restart pgpool-ii
+   ```
 
-使用本机（和pgpool-II在同一个机器上）开启两个PG服务用于测试
+   查看pgpool-ii服务状态：
 
-[参考PostgreSQL Wiki](https://wiki.postgresql.org/wiki/Streaming_Replication)（注意有些描述已过时）
+   ```bash
+   $ systemctl status pgpool-ii
+   ```
 
-首先创建两个文件夹：
+   禁止pgpool-ii服务开机自启：
+
+   ```bash
+   # systemctl disable pgpool-ii
+   ```
+
+#### 测试Pgpool-II
+
+PostgreSQL开启Streaming Replication (SR)，Pgpool-II使用Streaming replication mode并开启负载均衡
+
+**注意：**Pgpool-II的所有命令，如果有参数能够指定`hostname`的，都要加上这个参数，否则默认使用Unix Socket进行通讯，而尽管在配置文件pgpool.conf里配置了Unix domain socket文件的地址，命令中还是使用默认的Unix domain socket文件地址，导致出现以下报错：
+
+```bash
+ERROR: connection to socket "/tmp/.s.PGSQL.9898" failed with error "No such file or directory"
+```
+
+>  实际配置的.s.PGSQL.9898路径应该是`/var/run/postgresql/.s.PGSQL.9898`
+
+所以要指定`hostname`以使用TCP/IP通讯
+
+##### 测试环境参数
+
+- 127.0.0.1:9999：pgpool主进程
+- 127.0.0.1:9898：pcp进程
+- 127.0.0.1:5433：PostgreSQL主要节点(Primary)，数据目录`data_5433`
+- 127.0.0.1:5434：PostgreSQL次要节点(Standby)，数据目录`data_5434`
+
+##### 配置PostgreSQL测试环境
+
+开启PostgreSQL的SR，使用`pg_ctl`开启两个PostgreSQL用于测试
+
+[参考PostgreSQL Wiki（注意有些描述已过时）](https://wiki.postgresql.org/wiki/Streaming_Replication)
+
+首先使用以下命令创建两个数据目录：
 
 ```bash
 $ mkdir data_5433 data_5434
 ```
 
-###### 配置主节点(Master)
+###### 配置主要节点(Primary)
 
-1. 初始化数据集
+1. 初始化数据目录
 
-	```bash
-	$ initdb --locale=en_US.UTF-8 --encoding=UTF8 --pgdata=./data_5433 --username=postgres
-	```
+   ```bash
+   $ initdb --locale=en_US.UTF-8 --encoding=UTF8 --pgdata=./data_5433 --username=postgres
+   ```
 
-2. 编辑postgresql.conf
+2. 编辑`data_5433/postgresql.conf`
 
-	要修改的配置项有：
+   要修改的配置项有：
 
-	- listen_addresses
+   - `listen_addresses`
 
-		> 默认值是localhost，如果主从节点和pgpool不在同一台机器上，需要设为0.0.0.0
+     默认值是'localhost'，如果PostgreSQL主备节点和Pgpool-II不在同一台机器上，需要设为0.0.0.0
 
-	- port
+   - `port`
 
-		> 默认值是5432，因为是主节点，修改为5433
+     默认值是5432，因为是主要节点，修改为5433
 
-	- wal_level
+   - `wal_level`
 
-		> 默认值是replica，其他值为minimal、logical，因为测试中主节点只是作为SR的来源，所以使用默认值replica，其他值的作用请自行测试
+     默认值是'replica'，其他允许的值为'minimal'、'logical'，因为测试中主要节点只是作为SR的来源，所以使用默认值'replica'，其他值的作用请自行测试
 
-	- max_wal_senders
+   - `max_wal_senders`
 
-		> 默认值是10，测试保持默认值
+     默认值是10，测试保持默认值
 
-	- wal_keep_segments
+   - `wal_keep_segments`
 
-		> 默认值是10，可以适当增大，测试设为64
+     默认值是10，可以适当增大，测试设为64
 
-3. 编辑pg_hba.conf
+3. 编辑`data_5433/pg_hba.conf`
 
-	因为pgpool和主从节点都是在一台机器上所以不用修改该文件，否则要修改
+   因为Pgpool-II和PostgreSQL主备节点是在同一台机器上所以不用修改该文件，否则要修改
 
-4. 启动主节点
+4. 启动主要节点
 
-	```bash
-	$ pg_ctl --wait --pgdata=./data_5433 start
-	```
+   ```bash
+   $ pg_ctl --wait --pgdata=./data_5433 start
+   ```
 
 5. 创建用户
 
-	创建具有REPLICATION权限的用户replication，密码是'password'，并允许其登录
+   在主要节点创建用户replication，密码是'password'，该用户具有**REPLICATION**和**LOGIN**权限：
 
-	```sql
-	CREATE ROLE replication WITH REPLICATION PASSWORD 'password' LOGIN
-	```
+   ```sql
+   CREATE ROLE replication WITH REPLICATION PASSWORD 'password' LOGIN
+   ```
 
-###### 配置从节点(Slave)
+###### 配置备用节点(Standby)
 
-1. 从主节点生成基本备份
+1. 从主要节点生成基本备份放置到备用节点
 
-	要确保从节点数据目录`data_5434`是空文件夹
+   **要确保备用节点的数据目录data_5434是一个空文件夹**
 
-	```bash
-	$ pg_basebackup --pgdata=./data_5434 --format=p --wal-method=stream --write-recovery-conf --checkpoint=fast --progress --verbose --host=127.0.0.1 --port=5433  --username=replication
-	```
+   ```bash
+   $ pg_basebackup --pgdata=./data_5434 --format=p --wal-method=stream --write-recovery-conf --checkpoint=fast --progress --verbose --host=127.0.0.1 --port=5433  --username=replication
+   ```
 
-	> 该命令会从主节点获取PG的整个数据目录并放置到从节点
-	>
-	> 有的教程说需要创建恢复命令文件recovery.conf，因为上述命令的`--write-recovery-conf`参数会自动生成恢复命令，不再需要该文件
+   该命令会获取主要节点整个数据目录并放置到备用节点
 
-2. 编辑postgresql.conf
+   > 有的教程说需要创建“恢复命令文件”recovery.conf，因为上述命令的`--write-recovery-conf`参数会自动生成恢复命令，不再需要该文件
 
-	要修改的配置项有：
+2. 编辑`data_5434/postgresql.conf`
 
-	- port
+   要修改的配置项有：
 
-		> 修改为5434
+   - `port`
 
-3. 编辑pg_hba.conf
+     因为是从主要节点备份的，默认值是5433，修改为5434
 
-	因为pgpool和主从节点都是在一台机器上所以不用修改该文件，否则要修改
+3. 编辑`data_5434/pg_hba.conf`
+
+   因为Pgpool-II和PostgreSQL主备节点是在同一台机器上所以不用修改该文件，否则要修改
 
 4. 修改目录权限
 
-	`data_5434`文件夹权限要求必须是0700，如果不是请使用以下命令修改
+   要想启动PostgreSQL，它的数据文件夹权限必须是**0700**，主要节点的数据目录`data_5433`已经通过`initdb`命令自动修改了权限，备用节点的数据目录`data_5434`需要手动修改权限：
 
-	```bash
-	chmod 0700 data_5434
-	```
+   ```bash
+   $ chmod 0700 data_5434
+   ```
 
-5. 启动从节点
+5. 启动备用节点
 
-	```bash
-	$ pg_ctl --wait --pgdata=./data_5434 start
-	```
+   ```bash
+   $ pg_ctl --wait --pgdata=./data_5434 start
+   ```
 
-6. 测试SR功能
+###### 测试PostgreSQL的SR
 
-	- 在节点创建一个user和database
+1. 测试SR功能
 
-		```sql
-		create user user_test ;
-		create database db_test;
-		```
+   - 在主要节点创建一个User和Database
 
-		然后分别使用`\du`和`\l`指令在主节点和从节点查看。可以看到两个节点都有了user_test用户和db_test数据库
+     ```sql
+     create user user_test ;
+     create database db_test ;
+     ```
 
-	- 其他功能请自行测试
+     使用`\du`指令分别查看主备节点的角色列表：
 
-7. 查看SR进度
+     ![du](https://gitee.com/YJ1516/MyPic/raw/master/picgo/du.png)
 
-	使用以下命令查看
+     使用`\l`指令分别查看主备节点的数据库列表：
 
-	```bash
-	ps aux | grep sender
-	ps aux | grep receiver
-	```
+     ![l](https://gitee.com/YJ1516/MyPic/raw/master/picgo/l.png)
 
-8. 查看SR状态
+     左边是主要节点，右边是备用节点。可以看到只在主要节点执行了`CREATE`指令，右边的备用节点也出现了名为'user_test'的角色和名为'db_test'的数据库
 
-	在主节点执行以下指令查看SR的状态
+   - 其他功能请自行测试
 
-	```sql
-	\x
-	select * from pg_stat_replication;
-	```
+2. 查看SR进度
 
-	> 第一行指令设置打开扩展显示，否则输出的阅读性太差
+   使用以下命令查看：
 
-	
+   ```bash
+   ps aux | grep sender
+   ps aux | grep receiver
+   ```
 
-##### 配置pgpool-II
+3. 查看SR状态
 
-1. 配置基本参数
+   在主要节点执行以下指令查看SR的状态：
 
-  使用pgpool.conf.sample-replication作为配置文件
+   ```sql
+   \x
+   select * from pg_stat_replication ;
+   ```
 
-  按照[pgpool-II的配置文件](#pgpool-II的配置文件)配置好基本参数之后，还需要在pgpool.conf中配置Replication相关参数
+   `\x`指令打开扩展显示，否则输出的阅读性太差
 
-  - master_slave_mode
+   ![pg_stat_replication](https://gitee.com/YJ1516/MyPic/raw/master/picgo/pg_stat_replication.png)
 
-  	> 默认值是off，需要修改为on
+   可以看到已经有一个备用节点连接了主要节点，其中：
 
-  - master_slave_sub_mode
+   - `client_addr`是备用节点地址
+   - `state`的值`streaming`代表使用的是流复制(SR)模式
+   - `sync_state`的值`async`代表使用异步复制
 
-  	>  默认值是stream，确保不是其他值
+##### 配置Pgpool-II测试环境
 
-  - load_balance_mode
+1. 配置pgpool.conf
 
-  	>  默认值是on，确保不是off
+   拷贝pgpool.conf.smple-stream作为配置文件pgpool.conf
 
-2. 启动pgpool-II服务
+   按照[配置Pgpool-II](#配置Pgpool-II)配置好基本参数之后就可以了，因为pgpool.conf.smple-stream一般是默认关闭Native Replication mode且开启了负载均衡，但还是检查一下以下配置项为好：
 
-	```bash
-	# systemctl start pgpool-ii.service
-	```
+   - `replication_mode`
 
-3. 连接到pgpool
+     是否开启Native Replication mode，默认值'off'，不能设为'on'
 
-	```bash
-	psql --host=127.0.0.1 --port=9999 --username=postgres --dbname=postgres
-	```
+   - `load_balance_mode`
 
-4. 使用pgpool-II
+     是否开启负载均衡，默认值是'on'，不要设为'off'
 
-	使用以下指令查看pgpool状态：
+2. 启动pgpool-ii服务
 
-	```sql
-	show pool_nodes ;
-	```
+   ```bash
+   # systemctl start pgpool-ii
+   ```
 
-	> 示例配置了两个PG，查询结果应该有两行，确保都是**status**列都是**up**
+3. 连接到Pgpool-II
 
-	使用以下指令查看pgpool版本：
+   ```bash
+   $ psql --host=127.0.0.1 --port=9999 --username=postgres --dbname=postgres
+   ```
 
-	```sql
-	shoe pool_version ;
-	```
+4. 查看Pgpool-II信息
 
-	使用以下指令查看pgpool的所有配置信息：
+   - 使用以下指令查看Pgpool-II的状态：
 
-	```sql
-	pgpool show all ;
-	```
+     ```sql
+     show pool_nodes ;
+     ```
 
-##### 负载均衡测试
+     ![pool_nodes](https://gitee.com/YJ1516/MyPic/raw/master/picgo/pool_nodes.png)
+     
+     可以看到两个节点，其中：
+     
+     - `node_id`是节点编号，有节点0和节点1
+     - `hostname`和`port`是节点的连接参数
+     - `status`是节点状态，确保都是'up'
+     - `lb_weight`是节点负载均衡权重，两个节点的权重是一样的
+     - `role`是节点扮演的角色，节点0是主要(primary)节点，节点1是备用(standby)节点
+     - `load_balance_node`值与节点的角色无关，当客户端进行连接的时候，Pgpool-II根据`lb_weight`选择一个节点进行负载均衡，被选中的就是'true'，未被选中的是'false'
+     
+   - 使用以下指令查看Pgpool-II的版本：
 
-1. 在主节点执行初始化test数据库
+     ```sql
+     show pool_version ;
+     ```
 
-	```bash
-	pgbench --username=postgres --initialize --port=5433 test
-	```
+     ![pool_version](https://gitee.com/YJ1516/MyPic/raw/master/picgo/pool_version.png)
 
-2. 进行负载均衡测试
+   - 使用以下指令查看Pgpool-II的所有配置信息：
 
-	```bash
-	pgbench --username=postgres --port=9999 --client=10 --jobs=10 --select-only --time=60 test
-	```
+     ```sql
+     pgpool show all ;
+     ```
 
-3. 查看结果
+     ![pool_all_config](https://gitee.com/YJ1516/MyPic/raw/master/picgo/pool_all_conf.png)
 
-	执行以下指令：
 
-	```sql
-	show pool_nodes ;
-	```
+##### Pgpool-II负载均衡测试
 
-	`select_cnt`就是每个节点分配的`SELECT`的数量，如果pgpool.conf中配置项`backend_weight0`和`backend_weight1`的值相等，pgpool-II将尝试分配相等数量的SELECT，因此该列数字应该相差无几
+1. 在主要节点创建一个名为test的数据库
 
----
+   ```sql
+   create database test ;
+   ```
 
-### pgbouncer
+2. 在主要节点执行以下命令来初始化test数据库
 
-PG的轻量级连接池
+   ```bash
+   $ pgbench --username=postgres --initialize --port=5433 test
+   ```
+
+   ![init_db](https://gitee.com/YJ1516/MyPic/raw/master/picgo/init_db.png)
+
+3. 进行负载均衡测试
+
+   ```bash
+   $ pgbench --username=postgres --port=9999 --client=10 --jobs=10 --select-only --time=60 test
+   ```
+
+   ![pgbench](https://gitee.com/YJ1516/MyPic/raw/master/picgo/pgbench.png)
+
+4. 查看测试结果
+
+   - 连接Pgpool-II
+
+     ```bash
+     $ psql --host=127.0.0.1 --port=9999 --username=postgres --dbname=postgres
+     ```
+
+   - 查看节点信息
+
+     ```sql
+     show pool_nodes ;
+     ```
+
+     ![bench cnt](https://gitee.com/YJ1516/MyPic/raw/master/picgo/bench_cnt.png)
+
+     如图每个节点的`select_cnt`现实的是分配给每个节点的`SELECT`数量，由于主备节点的权重一样，Pgpool-II会尝试分派相等数量的`SELECT`
+
+### PgBouncer
+
+PostgreSQL的轻量级连接池
 
 #### 安装
 
@@ -690,46 +835,46 @@ PG的轻量级连接池
 
 #### 作用
 
-1. 维护和PG的连接的缓存，为连接请求分配空闲的连接进程，而不需要PG一直fork新的进程徒增资源消耗
-2. 提高连接利用率（重用），避免连接过多导致数据库资源消耗过大
-3. 对连接进行限制，防止恶意请求
+- 维护和PostgreSQL的连接的缓存，为连接请求分配空闲的连接进程，而不需要PostgreSQL一直fork新的进程徒增资源消耗
+- 提高连接利用率（重用），避免连接过多导致数据库对资源消耗过大
+- 对连接进行限制，防止恶意请求
 
 #### 轻量级的体现
 
-1. 通过libevent进行socket通信，提高通信效率
-2. 使用C编写，每个连接仅消耗2kb内存
+- 通过libevent进行socket通信，提高通信效率
+- 使用C编写，每个连接仅消耗2kb内存
 
 #### 三种连接池模型
 
-1. **session**：会话级连接。在生命周期内，连接池分配一个数据库连接，客户端断开连接时，连接池回收连接
-2. **transaction**：事务级连接。客户端每个事务结束时，连接池回收连接，再次执行事务时需要重新获取连接
-3. **statement**：语句级连接。执行完一个SQL语句时，连接池回收连接，再次执行SQL时需要重新获取连接。这种模式客户端需要设置*autocommit*模式
+- **session**：会话级连接。在生命周期内，连接池分配一个数据库连接，客户端断开连接时，连接池回收连接
+- **transaction**：事务级连接。客户端每个事务结束时，连接池回收连接，再次执行事务时需要重新获取连接
+- **statement**：语句级连接。执行完一个SQL语句时，连接池回收连接，再次执行SQL时需要重新获取连接。这种模式客户端需要设置*autocommit*模式
 
 #### 配置
 
-##### 成功运行pgbouncer服务需要的配置
+##### 配置PgBouncer服务
 
-1. 创建`/var/log/pgbouncer`文件夹并修改属组为'pgbouncer'：
+1. 创建`/var/log/pgbouncer`文件夹并修改归属为'pgbouncer:pgbouncer'
 
-    ```bash
-    # makedir /var/log/pgbouncer
-    # chown pgbouncer:pgbouncer /var/log/pgbouncer
-    ```
+   ```bash
+   # makedir /var/log/pgbouncer
+   # chown pgbouncer:pgbouncer /var/log/pgbouncer
+   ```
 
-2. 创建配置文件和userlist文件：
+2. 创建配置文件pgbouncer.ini和用户列表文件userlist.txt
 
-    ```bash
-    # cp /usr/share/doc/pgbouncer/userlist.txt /etc/pgbouncer/userlist.txt
-    # cp /usr/share/doc/pgbouncer/pgbouncer.ini /etc/pgbouncer/pgbouncer.ini
-    ```
+   ```bash
+   # cp /usr/share/doc/pgbouncer/userlist.txt /etc/pgbouncer/userlist.txt
+   # cp /usr/share/doc/pgbouncer/pgbouncer.ini /etc/pgbouncer/pgbouncer.ini
+   ```
 
-3. 修改`/etc/pgbouncer/pgbouncer.ini`中的配置项**unix_socket_dir**：
+3. 修改`/etc/pgbouncer/pgbouncer.ini`中的配置项**unix_socket_dir**
 
-    > 原始值是'/run/postgresql'，修改为'/run/pgbouncer'
-    >
-    > 该配置项定义了pgbouncer的Unix Socket文件位置，因为pgbouncer不属于postgresql组，没有`/run/postgresql`文件夹的操作权限，所以要改成它自己的`/run/pgbouncer`
+   > 原始值是'/run/postgresql'，修改为'/run/pgbouncer'
+   >
+   > 该配置项定义了pgbouncer的Unix Socket文件位置，因为pgbouncer不属于postgresql组，没有`/run/postgresql`文件夹的操作权限，所以要改成它自己的`/run/pgbouncer`
 
-以上三项配置完成之后，即可使用systemd启用并运行pgbouncer服务：
+以上三项配置完成之后，即可使用systemd启用并立即运行pgbouncer服务：
 
 ```bash
 # systemctl enable --now pgbouncer
@@ -737,46 +882,50 @@ PG的轻量级连接池
 
 ##### 配置userlist.txt
 
-userlist.txt文件指定了能够连接PG的用户，并配置了对应用户的密码（经过md5加密）
+userlist.txt指定了能够连接PostgreSQL的用户ID，并配置了对应ID的密码（经过md5加密）
 
-1. 修改`/etc/pgbouncer/pgbouncer.ini`中的配置项**auth_type**：
+1. 修改`/etc/pgbouncer/pgbouncer.ini`中的配置项**auth_type**
 
-    > 原始值是'trust'，修改为`md5`
-    >
-    > 该参数定义了身份认证方法
+   原始值是'trust'，修改为`md5`
 
-2. 获取用户名及其对应的暗文密码：
+   > 该参数定义了身份认证方法
 
-    有两种方式，第一种需要安装`psql`工具：
+2. 获取用户名及其对应的暗文密码
 
-    ```bash
-    $ psql --host=127.0.0.1 --port=5432 --username=postgres -c "SELECT concat('\"', usename, '\" \"', passwd, '\"') FROM pg_shadow"
-    ```
+   有两种方式：
 
-    > 输出结果是已经经过md5加密后的暗文密码，可以直接使用
-    >
-    > 通过修改'--username'参数的值可以获得指定用户名的暗文密码
+   - 使用`psql`
 
-    第二种获取方式通过执行Python代码生成，需要明确知道用户名及其对应密码：
+     ```bash
+     $ psql --host=127.0.0.1 --port=5432 --username=postgres -c "SELECT concat('\"', usename, '\" \"', passwd, '\"') FROM pg_shadow"
+     ```
 
-    ```python
-    import hashlib
+     输出结果是已经经过md5加密后的暗文密码，可以直接使用
 
-    username = ""
-    password = ""
+     通过修改'--username'参数的值可以获得指定用户名的暗文密码
 
-    md5 = hashlib.md5()
-    md5.update((username + password).encode('UTF-8'))
+   - 使用Python脚本
 
-    print('"{}" "{}"'.format(username, 'md5'+md5.hexdigest()))
-    ```
+     ```python
+     import hashlib
+     
+     username = ""
+     password = ""
+     
+     md5 = hashlib.md5()
+     md5.update((username + password).encode('UTF-8'))
+     
+     print('"{}" "{}"'.format(username, 'md5'+md5.hexdigest()))
+     ```
 
-3. 修改`/etc/pgbouncer/userlist.txt`：
+     填写'username'和'password'的值并运行该脚本，输出结果就是userlist.txt需要的内容
 
-    获取到暗文密码之后，将之填入`/etc/pgbouncer/userlist.txt`中，需要和用户名一一对应，例如：
+3. 修改`/etc/pgbouncer/userlist.txt`
 
-    ```text
-    "postgres" "md53175bce1d3201d16594cebf9d7eb3f9d"
-    ```
+   获取到暗文密码之后，将之填入`/etc/pgbouncer/userlist.txt`中，需要和用户名一一对应，格式如下：
 
-    > 这是PG默认用户"postgres"及其密码"postgres"加密后的值
+   ```yaml
+   "postgres" "md53175bce1d3201d16594cebf9d7eb3f9d"
+   ```
+
+   > 这是PostgreSQL默认用户'postgres'及其密码'postgres'加密后的值
