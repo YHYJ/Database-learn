@@ -9,7 +9,7 @@ PostgreSQL(PG)及其组件
 <!-- vim-markdown-toc GFM -->
 
 * [PostgreSQL的安装和配置](#postgresql的安装和配置)
-* [PostgreSQL的组件](#postgresql的组件)
+* [PostgreSQL的配件](#postgresql的配件)
     * [PgAdmin](#pgadmin)
         * [安装](#安装)
     * [Pgpool-II](#pgpool-ii)
@@ -54,7 +54,7 @@ PostgreSQL(PG)及其组件
 
 参考[Install & Deploy](./file/install-and-deploy.md)
 
-## PostgreSQL的组件
+## PostgreSQL的配件
 
 ### PgAdmin
 
@@ -497,10 +497,10 @@ host    all         all         ::1/128               trust
    [Unit]
    Description=PGPool-II Middleware Between PostgreSQL Servers And PostgreSQL Database Clients
    After=syslog.target network.target
-   
+
    [Service]
    ExecStart=/usr/local/bin/pgpool -n
-   
+
    [Install]
    WantedBy=multi-user.target
    ```
@@ -754,16 +754,16 @@ $ mkdir data_5433 data_5434
      ```
 
      ![pool_nodes](https://gitee.com/YJ1516/MyPic/raw/master/picgo/pool_nodes.png)
-     
+
      可以看到两个节点，其中：
-     
+
      - `node_id`是节点编号，有节点0和节点1
      - `hostname`和`port`是节点的连接参数
      - `status`是节点状态，确保都是'up'
      - `lb_weight`是节点负载均衡权重，两个节点的权重是一样的
      - `role`是节点扮演的角色，节点0是主要(primary)节点，节点1是备用(standby)节点
      - `load_balance_node`值与节点的角色无关，当客户端进行连接的时候，Pgpool-II根据`lb_weight`选择一个节点进行负载均衡，被选中的就是'true'，未被选中的是'false'
-     
+
    - 使用以下指令查看Pgpool-II的版本：
 
      ```sql
@@ -908,13 +908,13 @@ userlist.txt指定了能够连接PostgreSQL的用户ID，并配置了对应ID的
 
      ```python
      import hashlib
-     
+
      username = ""
      password = ""
-     
+
      md5 = hashlib.md5()
      md5.update((username + password).encode('UTF-8'))
-     
+
      print('"{}" "{}"'.format(username, 'md5'+md5.hexdigest()))
      ```
 
