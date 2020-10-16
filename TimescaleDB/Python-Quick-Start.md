@@ -78,7 +78,7 @@ Quick Start: Python and TimescaleDB
 
    ```python
    with psycopg2.connect(CONNECTION) as conn:
-       #Call the function that needs the database connection
+       # Call the function that needs the database connection
        func_1(conn)
    ```
 
@@ -108,7 +108,7 @@ Quick Start: Python and TimescaleDB
 
    ```python
    cur = conn.cursor()
-   #see definition in Step 1
+   # see definition in Step 1
    cur.execute(query_create_sensors_table)
    conn.commit()
    cur.close()
@@ -129,7 +129,7 @@ Quick Start: Python and TimescaleDB
       创建一个变量，其值是用于创建表的`CREATE TABLE`语句（注意超表应有强制时间列）：
 
       ```python
-      #create sensor_data hypertable
+      # create sensor_data hypertable
       query_create_sensordata_table = """CREATE TABLE sensor_data (
                                               time TIMESTAMPTZ NOT NULL,
                                               sensor_id INTEGER,
@@ -157,7 +157,7 @@ Quick Start: Python and TimescaleDB
    cur = conn.cursor()
    cur.execute(query_create_sensordata_table)
    cur.execute(query_create_sensordata_hypertable)
-   #commit changes to the database to make changes persistent
+   # commit changes to the database to make changes persistent
    conn.commit()
    cur.close()
    ```
@@ -169,13 +169,15 @@ Quick Start: Python and TimescaleDB
    以下是在表中插入数据的典型方法，该示例将数据插入到名为sensors的关系表中：
 
    ```python
+   SQL = "INSERT INTO sensors (type, location) VALUES (%s, %s);"
    sensors = [('a','floor'),('a', 'ceiling'), ('b','floor'), ('b', 'ceiling')]
    cur = conn.cursor()
    for sensor in sensors:
        try:
-          cur.execute("INSERT INTO sensors (type, location) VALUES (%s, %s);", (sensor[0], sensor[1]))
+           data = (sensor[0], sensor[1])
+           cur.execute(SQL, data)
        except (Exception, psycopg2.Error) as error:
-          print(error.pgerror)
+           print(error.pgerror)
    conn.commit()
    ```
 
