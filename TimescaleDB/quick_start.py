@@ -85,12 +85,15 @@ def insertDataFast(conn):
     :returns: TODO
 
     """
-    # 插入数据的SQL语句
-    query_insert_rows_fast = ("SELECT generate_series(now() - "
-                              "interval '24 hour', now(), "
+    # 生成随机数据的SQL语句
+    query_insert_rows_fast = ("SELECT generate_series("
+                              "now() - interval '24 hour', "
+                              "now(), "
                               "interval '5 minute') "
-                              "AS time, %s as sensor_id, random()*100 "
-                              "AS temperature, random() AS cpu")
+                              "AS time, "
+                              "%s as sensor_id, "
+                              "random()*100 AS temperature, "
+                              "random() AS cpu")
     # 查询数据的SQL语句
     query_select_data = "SELECT * FROM sensor_data LIMIT %s;"
 
@@ -139,6 +142,6 @@ if __name__ == "__main__":
         # 在表中插入数据
         insertData(conn)
         # 使用pgcopy快速插入数据
-        insertDataFast(conn)
+        #  insertDataFast(conn)
         # 提交更改
         conn.commit()
