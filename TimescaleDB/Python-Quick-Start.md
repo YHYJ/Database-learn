@@ -14,7 +14,8 @@ Quick Start: Python and TimescaleDB
 * [3. 生成一个超表](#3-生成一个超表)
 * [4. 在表中插入数据](#4-在表中插入数据)
 * [5. 执行查询语句](#5-执行查询语句)
-* [6. 文档](#6-文档)
+* [6. 数据结构](#6-数据结构)
+* [7. 文档](#7-文档)
 
 <!-- vim-markdown-toc -->
 
@@ -276,6 +277,24 @@ Quick Start: Python and TimescaleDB
    cur.close()
    ```
 
-## 6. 文档
+## 6. 数据结构
+
+Python插入到TimescaleDB的数据格式应该类似于：
+
+```python
+cols = (
+    datetime.datetime(
+        2020, 10, 16, 13, 34, 50, 16172,
+        tzinfo=psycopg2.tz.FixedOffsetTimezone(offset=480, name=None)
+    ),
+    1,
+    95.5913584213704,
+    0.621821577660739
+)
+```
+
+可以用`datetime.now()`插入，注意要用占位符而不是format
+
+## 7. 文档
 
 有关psycopg2的文档请看[psycopg2 documentation](https://www.psycopg.org/docs/usage.html)

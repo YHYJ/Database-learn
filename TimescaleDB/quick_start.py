@@ -142,6 +142,6 @@ if __name__ == "__main__":
         # 在表中插入数据
         insertData(conn)
         # 使用pgcopy快速插入数据
-        #  insertDataFast(conn)
+        insertDataFast(conn)
         # 提交更改
         conn.commit()
