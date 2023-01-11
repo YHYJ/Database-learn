@@ -33,25 +33,22 @@ SELECT
 FROM
 	TableName
 WHERE
-	(
-		STATION,
-		"TIMESTAMP",
-	) IN (
+	(STATION, "TIMESTAMP") IN (
 		SELECT
 			STATION,
-			"TIMESTAMP",
+			"TIMESTAMP"
 		FROM
 			TableName
 		GROUP BY
 			STATION,
-			"TIMESTAMP",
+			"TIMESTAMP"
 		HAVING
 			COUNT (*) > 1
 	)
-AND "TO_DATE" (
+AND "TIMESTAMP" > "TO_DATE" (
 	'2023-01-10 11:00:00',
 	'yyyy-mm-dd hh24:mi:ss'
-) < "TIMESTAMP"
+)
 AND "TIMESTAMP" < "TO_DATE" (
 	'2023-01-10 12:00:00',
 	'yyyy-mm-dd hh24:mi:ss'

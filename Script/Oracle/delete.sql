@@ -5,16 +5,16 @@ FROM
 WHERE
 	(
 		STATION,
-		"TIMESTAMP",
+		"TIMESTAMP"
 	) IN (
 		SELECT
 			STATION,
-			"TIMESTAMP",
+			"TIMESTAMP"
 		FROM
 			TableName
 		GROUP BY
 			STATION,
-			"TIMESTAMP",
+			"TIMESTAMP"
 		HAVING
 			COUNT (*) > 1
 	)
@@ -25,7 +25,7 @@ AND ROWID NOT IN (
 		TableName
 	GROUP BY
 		STATION,
-		"TIMESTAMP",
+		"TIMESTAMP"
 	HAVING
 		COUNT (*) > 1
 )
