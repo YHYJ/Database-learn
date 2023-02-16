@@ -18,10 +18,10 @@ SELECT
 FROM
     TableName
 WHERE
-    "TO_DATE" (
+    "TIMESTAMP" > "TO_DATE" (
         '2023-01-10 00:00:00',
         'yyyy-mm-dd hh24:mi:ss'
-    ) < "TIMESTAMP"
+    )
 AND "TIMESTAMP" < "TO_DATE" (
     '2023-01-10 12:00:00',
     'yyyy-mm-dd hh24:mi:ss'
@@ -52,4 +52,23 @@ AND "TIMESTAMP" > "TO_DATE" (
 AND "TIMESTAMP" < "TO_DATE" (
     '2023-01-10 12:00:00',
     'yyyy-mm-dd hh24:mi:ss'
+)
+
+-- 查询指定TIMESTAMP（可替换为其他字段）内所有"STATION"字段值以'S1'或'S2'开头的数据
+SELECT
+	*
+FROM
+    TableName
+WHERE
+	(
+		STATION LIKE 'S1%'
+		OR STATION LIKE 'S2%'
+	)
+AND "TIMESTAMP" > "TO_DATE" (
+	'2023-02-06 00:00:00',
+	'yyyy-mm-dd hh24:mi:ss'
+)
+AND "TIMESTAMP" < "TO_DATE" (
+	'2023-02-09 00:00:00',
+	'yyyy-mm-dd hh24:mi:ss'
 )
