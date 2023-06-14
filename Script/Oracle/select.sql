@@ -72,3 +72,19 @@ AND "TIMESTAMP" < "TO_DATE" (
 	'2023-02-09 00:00:00',
 	'yyyy-mm-dd hh24:mi:ss'
 )
+
+-- 查询指定TIMESTAMP（可替换为其他字段）内所有指定"STATION"值的数据，并根据TIMESTAMP倒序排列
+SELECT
+	*
+FROM
+    TableName
+WHERE
+	(
+		STATION = 'S1'
+	)
+AND "TIMESTAMP" > "TO_DATE" (
+	'2023-02-06 00:00:00',
+	'yyyy-mm-dd hh24:mi:ss'
+)
+ORDER BY
+	"TIMESTAMP" DESC
