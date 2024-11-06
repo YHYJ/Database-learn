@@ -1,11 +1,14 @@
---  从 ALL_TAB_STATISTICS 视图查询指定表的行数（估算）
+--  从 all_tab_columns 视图查询指定表的列名
+SELECT COLUMN_NAME FROM all_tab_columns WHERE TABLE_NAME = 'TableName' ORDER BY COLUMN_ID
+
+--  从 all_tab_statistics 视图查询指定表的行数（估算）
 SELECT
     NUM_ROWS
 FROM
     ALL_TAB_STATISTICS
 WHERE
-    OWNER = 'YOUR_SCHEMA_NAME'
-    AND TABLE_NAME = 'COB_T_AMI_CAPTURE_LOG';
+    OWNER = 'SchemaName'
+    AND TABLE_NAME = 'TableName';
 
 --  查询最新TIMESTAMP（可替换成其他字段）的所有数据
 SELECT
