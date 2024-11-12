@@ -4,11 +4,21 @@ SELECT * FROM (SELECT a.*, ROWNUM rnum FROM (SELECT * FROM <TableName> ORDER BY 
 -- 分页查询，跳过前10行，获取接下来的100行数据（限 Oracle 12c 及以上）
 SELECT * FROM <TableName> ORDER BY CREATEDON OFFSET 10 ROWS FETCH NEXT 100 ROWS ONLY
 
---  从 all_tab_columns 视图查询指定表的列名
-SELECT COLUMN_NAME FROM all_tab_columns WHERE TABLE_NAME = '<TableName>' ORDER BY COLUMN_ID
+--  从 ALL_TAB_COLUMNS 视图查询指定表的列名
+SELECT COLUMN_NAME FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = '<TableName>' ORDER BY COLUMN_ID
 
---  从 all_tab_statistics 视图查询指定表的行数（估算）
-SELECT NUM_ROWS FROM ALL_TAB_STATISTICS WHERE OWNER = 'SchemaName' AND TABLE_NAME = '<TableName>';
+-- 更新 ALL_TAB_STATISTICS 统计信息
+BEGIN
+  DBMS_STATS.GATHER_TABLE_STATS(
+    ownname => '<SchemaName>',
+    tabname => '<TableName>',
+    estimate_percent => DBMS_STATS.AUTO_SAMPLE_SIZE,
+    method_opt => 'FOR ALL COLUMNS SIZE AUTO',
+    cascade => TRUE
+  );
+END;
+--  从 ALL_TAB_STATISTICS 视图查询指定表的行数（查询前需要先更新统计信息）
+SELECT NUM_ROWS FROM ALL_TAB_STATISTICS WHERE OWNER = '<SchemaName>' AND TABLE_NAME = '<TableName>';
 
 --  查询最新TIMESTAMP（可替换成其他字段）的所有数据
 SELECT * FROM <TableName> WHERE "TIMESTAMP" = (SELECT MAX ("TIMESTAMP") FROM <TableName>)
