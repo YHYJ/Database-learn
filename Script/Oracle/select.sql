@@ -1,3 +1,9 @@
+-- 查看指定表所属用户
+SELECT OWNER, TABLE_NAME FROM ALL_TABLES WHERE TABLE_NAME = '<TableName>'
+
+-- 查看指定表的 DDL
+SELECT DBMS_METADATA.GET_DDL('TABLE', '<TableName>', '<SchemaName>') AS DDL FROM DUAL
+
 -- 分页查询第10到100行数据（Oracle 12c 以下）
 SELECT * FROM (SELECT a.*, ROWNUM rnum FROM (SELECT * FROM <TableName> ORDER BY CREATEDON) a WHERE ROWNUM <= 100) WHERE rnum >= 10
 
