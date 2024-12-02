@@ -5,6 +5,7 @@ SELECT OWNER, TABLE_NAME FROM ALL_TABLES WHERE TABLE_NAME = '<TableName>'
 SELECT DBMS_METADATA.GET_DDL('TABLE', '<TableName>', '<SchemaName>') AS DDL FROM DUAL
 
 -- 分页查询第10到100行数据（Oracle 12c 以下）
+-- 在循环分页获取数据时，由于伪列 ROWNUM 在每次循环中都是从1开始分配的，这会导致每次循环都会扫描整个表或索引直到找到符合条件的数据，从而导致性能问题
 SELECT * FROM (SELECT a.*, ROWNUM rnum FROM (SELECT * FROM <TableName> ORDER BY CREATEDON) a WHERE ROWNUM <= 100) WHERE rnum >= 10
 
 -- 分页查询，跳过前10行，获取接下来的100行数据（限 Oracle 12c 及以上）
